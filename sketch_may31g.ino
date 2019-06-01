@@ -18,8 +18,9 @@ MCUFRIEND_kbv tft;
 #define WHITE     0xFFFF
 #define LIGHTGREY 0xDDDD
 
-#define BTN_BACK          1
-#define BTN_NET_SETUP     2
+#define BTN_BACK          0
+#define BTN_NET_SETUP     1
+#define BTN_COUNT         2
 
 const int XP = 6, XM = A2, YP = A1, YM = 7;
 const int TS_LEFT = 154, TS_RT = 814, TS_TOP = 91, TS_BOT = 883;
@@ -27,7 +28,7 @@ const int TS_LEFT = 154, TS_RT = 814, TS_TOP = 91, TS_BOT = 883;
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 
 Adafruit_GFX_Button btnBack, btnNetSetup;
-bool btnEnabled[2] = {BTN_BACK, BTN_NET_SETUP};
+bool btnStatuses[BTN_COUNT];
 
 int pixel_x, pixel_y, scrWidth, scrHeight, prevPage, currentPage, pageChanged;
 
@@ -59,6 +60,24 @@ void setup(void)
   pageChanged = 1;
 }
 
+void initButtons() {
+  int i;
+  
+  for (i = 0; i < BTN_COUNT; i++) {
+    btnStatuses[i] = false;
+  }
+}
+
+void toggleButton(int id, bool enabled) {
+  int i;
+  
+  for (i = 0; i < BTN_COUNT; i++) {
+    if (i == id) {
+      btnStatuses[i] = enabled;
+    }
+  }
+}
+
 bool TouchGetXY(void)
 {
   TSPoint p = ts.getPoint();
@@ -72,10 +91,6 @@ bool TouchGetXY(void)
     pixel_y = map(p.y, TS_TOP, TS_BOT, 0, tft.height());
   }
   return pressed;
-}
-
-void disableAllBtn() {
-  
 }
 
 void centerPrint(const char *s, int y)
@@ -99,10 +114,10 @@ void toast(const char *s, int delay) {
 void drawIpAddrInput() {
   tft.fillRect(0, 0, 240, 320, BLACK);
 
-  drawBackBtn();
+  backButton();
 }
 
-void drawBackBtn() {
+void backButton() {
   tft.setTextSize(1);
 
   btnBack.initButton(&tft,  50, 280, 60, 30, WHITE, BLUE, BLACK, "Back", 1);
@@ -116,6 +131,10 @@ void drawMainPage() {
 
   btnNetSetup.initButton(&tft,  120, 70, 160, 30, WHITE, CYAN, BLACK, "Net Setup", 2);
   btnNetSetup.drawButton(false);
+
+  initButtons();
+
+  toggleButton(BTN_NET_SETUP, true);
 }
 
 void drawNetSetupPage() {
@@ -162,7 +181,11 @@ void drawNetSetupPage() {
   tft.setCursor(115, 145);
   tft.print("xxx.xxx.xxx.xxx");
 
-  drawBackBtn();
+  backButton();
+
+  initButtons();
+
+  toggleButton(BTN_BACK, true);
 }
 
 void loop(void)
@@ -182,8 +205,8 @@ void loop(void)
 
   bool down = TouchGetXY();
 
-  btnBack.press(down && btnBack.contains(pixel_x, pixel_y));
-  btnNetSetup.press(down && btnNetSetup.contains(pixel_x, pixel_y));
+  btnBack.press(down && btnStatuses[BTN_BACK] && btnBack.contains(pixel_x, pixel_y));
+  btnNetSetup.press(down && btnStatuses[BTN_NET_SETUP] && btnNetSetup.contains(pixel_x, pixel_y));
   
   if (btnBack.justPressed()) {
     currentPage = prevPage;
